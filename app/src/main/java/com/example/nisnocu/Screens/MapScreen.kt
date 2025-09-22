@@ -31,9 +31,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.firestore.FirebaseFirestore
@@ -43,6 +45,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -58,11 +62,27 @@ fun MapScreen(navController:NavHostController) {
     var placeName by remember { mutableStateOf("") }
     var radiusKm by remember{ mutableStateOf(1f) }//neka bude radijus po default 1km
     var radiusDialog by remember{ mutableStateOf(false) }
+    var kaficiList by remember{ mutableStateOf<List<Pair<String,Map<String,Any>>>>(emptyList()) }//pravi listu kafica koje cemo posle dobiti iz baze pozivanjem
+    var selectedKafic by remember{ mutableStateOf<Pair<String, Map<String,Any>>?>(null)}
 
     val firestore=FirebaseFirestore.getInstance()
     val storage=FirebaseStorage.getInstance()
+    val auth=FirebaseAuth.getInstance()
+    val trenutniUserId=auth.currentUser?.uid?:"testUser"
+    var userRezervisao by remember { mutableStateOf(false) }
 
-
+//naci objasnjenje za ovaj deo koda jer mi nista nije jasno
+    LaunchedEffect(Unit) {
+        firestore.collection("kafici").addSnapshotListener{snapshot,_->
+            if(snapshot!=null){
+                val docs=snapshot.documents.mapNotNull { doc->
+                    val data=doc.data
+                    if(data!=null) doc.id to data else null
+                }
+                kaficiList=docs
+            }
+        }
+    }
 
     // Ovo je da bi se pokrenuo dijalog za permisiju
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -113,7 +133,9 @@ fun MapScreen(navController:NavHostController) {
             userLocation?.let { location ->
                 Marker(
                     state = MarkerState(position = location),
-                    title = "Vasa lokacija"
+                    title = "Vasa lokacija",
+                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+
                 )
 
                 Circle(
@@ -127,6 +149,29 @@ fun MapScreen(navController:NavHostController) {
                 LaunchedEffect(location) {
                     cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(location, 15f))
                 }
+            }
+            kaficiList.forEach{ (id,kafic)->
+                val lat=(kafic["location"] as? Map<*,*>)?.get("lat") as? Double
+                val lng=(kafic["location"] as? Map<*,*>)?.get("lng") as? Double
+                val imeKafica=kafic["name"] as? String?:"Nepoznato"
+
+                if(lat!=null && lng!=null){
+                    Marker(
+                        state=MarkerState(position = LatLng(lat,lng)),
+                        title= imeKafica,
+                        icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET),
+                        onClick = {
+                            selectedKafic=id to kafic
+                            firestore.collection("kafici").document(id)
+                                .collection("reservations").document(trenutniUserId)
+                                .get().addOnSuccessListener { doc->
+                                    userRezervisao=doc.exists()
+                                }
+                             //naci objasnjenje za ovaj deo koda
+                       true }
+                    )
+                }
+
             }
         }
 
@@ -149,8 +194,77 @@ fun MapScreen(navController:NavHostController) {
                 Button(onClick = {radiusDialog=true}) {
                     Text("R")
                 }
+                Button(onClick = { navController.navigate("User/$trenutniUserId") }) {
+                    Text("Profile")
+                }
             }
         }
+
+        if(selectedKafic!=null){
+            val(id,data)=selectedKafic!!
+            val ime=data["name"] as? String ?:"Nepoznato"
+            val photoUrl=data["photo"] as? String
+            val tables=(data["tables"] as? Long)?.toInt() ?:0
+
+            AlertDialog(
+                onDismissRequest = {selectedKafic=null},
+                title ={Text(ime)},
+                text={
+                    Column(horizontalAlignment = Alignment.CenterHorizontally){
+                        photoUrl?.let{
+                            AsyncImage(
+                                model=it,
+                                contentDescription = ime,
+                                modifier = Modifier
+                                    .height(150.dp)
+                                    .fillMaxWidth()
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ){
+                            Text("Dostupno:$tables") //dodati da se tables updateuju kad se pritisne na rezervisi
+                            Spacer(modifier=Modifier.height(8.dp))
+                            Button(onClick = {
+                                val KaficRef=firestore.collection("kafici").document(id)
+                                val reservationRef=KaficRef.collection("reservations").document(trenutniUserId)
+
+                                reservationRef.get().addOnSuccessListener { doc->
+                                    if(!doc.exists()){
+                                        reservationRef.set(mapOf("reserved" to true))
+                                        KaficRef.update("tables",FieldValue.increment(-1))
+                                        firestore.collection("users").document(trenutniUserId)
+                                            .update("points",FieldValue.increment(1))
+                                        userRezervisao=true
+                                    }
+                                }
+                            },
+                                enabled = !userRezervisao && tables>0
+                                ) {
+                                Text("Rezervisi")
+                            }
+
+                            Button(onClick = {
+                                navController.navigate("Kafic/$id/$trenutniUserId")
+                            }) {
+                                Text("Detalji")
+                            }
+
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {selectedKafic=null}) {
+                        Text("Zatvori")
+                    }
+                },
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+
 
 
 
