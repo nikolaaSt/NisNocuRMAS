@@ -267,6 +267,10 @@ fun MapScreen(navController:NavHostController) {
                 Button(onClick = { navController.navigate("User/$trenutniUserId") }) {
                     Text("Profile")
                 }
+
+                Button(onClick={navController.navigate("rangLista")}){
+                    Text("Lista")
+                }
             }
         }
 

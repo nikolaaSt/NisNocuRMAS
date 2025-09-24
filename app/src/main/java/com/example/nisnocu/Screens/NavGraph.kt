@@ -15,6 +15,7 @@ fun NavGraph(navController:NavHostController){
         composable("login") { LoginScreen(navController) }
         composable("register") { RegistrationScreen(navController) }
         composable("Map"){ MapScreen(navController) }
+        composable("rangLista"){ LeaderboardScreen(navController) }
         composable(
             route = "Kafic/{cafeId}/{currentUserId}",
             arguments = listOf(
