@@ -2,6 +2,10 @@ package com.example.nisnocu.Screens
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
+import android.content.Context
 import android.location.Location
 import android.net.Uri
 import android.os.Build
@@ -47,6 +51,12 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
+import kotlin.math.atan
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -70,6 +80,18 @@ fun MapScreen(navController:NavHostController) {
     val auth=FirebaseAuth.getInstance()
     val trenutniUserId=auth.currentUser?.uid?:"testUser"
     var userRezervisao by remember { mutableStateOf(false) }
+    val notifiedCafes = remember { mutableStateOf(mutableSetOf<String>()) }
+
+    fun Daljina(start:LatLng,end:LatLng): Double{
+        val radijusZemlje=6371000.0
+        val dLat=Math.toRadians(end.latitude-start.latitude)
+        val dLng=Math.toRadians(end.longitude-start.longitude)
+        val a=sin(dLat/2).pow(2.0)+
+                cos(Math.toRadians(start.latitude))* cos(Math.toRadians(end.latitude))*
+                sin(dLng/2).pow(2.0)
+        val c=2* atan2(sqrt(a), sqrt(1-a))
+        return radijusZemlje*c
+    }
 
 //naci objasnjenje za ovaj deo koda jer mi nista nije jasno
     LaunchedEffect(Unit) {
@@ -98,6 +120,55 @@ fun MapScreen(navController:NavHostController) {
             }
         }
     )
+
+    LaunchedEffect(Unit) {
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
+            val channel=NotificationChannel(
+                "nearby_channel",
+                "Kafici u blizini",
+                NotificationManager.IMPORTANCE_HIGH)
+                .apply { description="Notifikacije za kafice u radijusu" }
+            val notificationManager:NotificationManager=
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+
+        }
+    }
+
+    LaunchedEffect(kaficiList,userLocation,radiusKm) {
+        while(true){
+            val loc=userLocation
+            if(loc!=null){
+
+            kaficiList.forEach{(id,kafic)->
+                val locationMap=kafic["location"] as? Map<*,*>
+                val lat=locationMap?.get("lat") as? Double
+                val lng=locationMap?.get("lng") as? Double
+                val imeKafica=kafic["name"] as? String ?: "Nepoznato"
+
+                if(lat!=null && lng !=null){
+                    val kaficLoc=LatLng(lat,lng)
+                    val distanca=Daljina(loc,kaficLoc)
+
+
+                    if(distanca<=radiusKm*1000&&!notifiedCafes.value.contains(id)){
+                        val builder=NotificationCompat.Builder(context,"nearby_channel")
+                            .setSmallIcon(android.R.drawable.ic_dialog_info)
+                            .setContentTitle("kakfic u blizini")
+                            .setContentTitle("$imeKafica je unutar izabranog radijusa")
+                            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                        val notificationManager=
+                            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        notificationManager.notify(id.hashCode(),builder.build())
+
+                        notifiedCafes.value.add(id)
+                    }
+                }
+            }
+        }
+            kotlinx.coroutines.delay(10000L)
+        }
+    }
 
     val photoLauncher= rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -171,7 +242,6 @@ fun MapScreen(navController:NavHostController) {
                        true }
                     )
                 }
-
             }
         }
 
@@ -384,4 +454,6 @@ fun MapScreen(navController:NavHostController) {
             Text("Dobijanje vaše lokacije...", modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
         }
     }
+
+
 }
