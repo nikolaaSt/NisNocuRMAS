@@ -37,5 +37,20 @@ fun NavGraph(navController:NavHostController){
             UserScreen(navController, userId)
         }
 
+        composable(
+            route = "search/{currentUserId}/{userLat}/{userLon}",
+            arguments = listOf(
+                navArgument("currentUserId") { type = NavType.StringType },
+                navArgument("userLat") { type = NavType.FloatType },
+                navArgument("userLon") { type = NavType.FloatType }
+            )
+        ) { backStackEntry ->
+            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: ""
+            val userLat = backStackEntry.arguments?.getFloat("userLat")?.toDouble() ?: 0.0
+            val userLon = backStackEntry.arguments?.getFloat("userLon")?.toDouble() ?: 0.0
+            SearchScreen(navController, currentUserId, userLat, userLon)
+        }
+
+
     }
 }

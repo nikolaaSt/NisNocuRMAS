@@ -66,6 +66,7 @@ fun MapScreen(navController:NavHostController) {
         LocationServices.getFusedLocationProviderClient(context)
     var tablesAvailableInput by remember { mutableStateOf("10") }
     var tablesAvailable by remember{ mutableStateOf(10) }
+
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var addPlace by remember { mutableStateOf(false) }
     var placePhotoUri by remember{ mutableStateOf<Uri?>(null) }
@@ -268,7 +269,7 @@ fun MapScreen(navController:NavHostController) {
                     Text("Profile")
                 }
 
-                Button(onClick={navController.navigate("rangLista")}){
+                Button(onClick={navController.navigate("search")}){
                     Text("Lista")
                 }
             }
@@ -390,7 +391,13 @@ fun MapScreen(navController:NavHostController) {
                                             "lat" to userLocation!!.latitude,
                                             "lng" to userLocation!!.longitude
                                         ),
-                                        "tables" to tablesAvailable
+                                        "tables" to tablesAvailable,
+                                        "addedBy" to trenutniUserId,
+                                        "createdAt" to FieldValue.serverTimestamp(),
+                                        "averageRating" to 0.0,
+                                        "ratingsCount" to 0
+
+
                                     )//upisivanje u bazu i takodje resetovanje alert dialog pop upa kako bi mogla da se doda nova lokacija
                                     firestore.collection("kafici")
                                         .add(kaficiData)

@@ -3,15 +3,13 @@ package com.example.nisnocu.Screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,26 +21,46 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
 
     var cafeData by remember { mutableStateOf<Map<String, Any>?>(null) }
     var hasReserved by remember { mutableStateOf(false) }
+    var hasRated by remember { mutableStateOf(false) }
+    var ratings by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
 
-    //gledanje za promene u kaficima u ovom slucaju za rezervacije ukoliko korisnik rezervisao na overlay bice onemogucena rezervacija
+    var newRating by remember { mutableStateOf(5f) }
+    var newComment by remember { mutableStateOf("") }
+
+    // Load cafe data, reservation, rating, and listen for ratings
     LaunchedEffect(cafeId) {
-        firestore.collection("kafici")
-            .document(cafeId)
-            .collection("reservations")
-            .document(currentUserId)
-            .get()
-            .addOnSuccessListener { doc ->
-                hasReserved=doc.exists()
+        // Check reservation
+        firestore.collection("kafici").document(cafeId)
+            .collection("reservations").document(currentUserId)
+            .get().addOnSuccessListener { doc ->
+                hasReserved = doc.exists()
             }
-    //pokupljanje informacija o koaficima za njihov id
+
+        // Check if user already rated
+        firestore.collection("kafici").document(cafeId)
+            .collection("ratings").document(currentUserId)
+            .get().addOnSuccessListener { doc ->
+                hasRated = doc.exists()
+            }
+
+        // Listen for cafe data
         firestore.collection("kafici").document(cafeId)
             .addSnapshotListener { snapshot, error ->
                 if (error == null && snapshot != null && snapshot.exists()) {
                     cafeData = snapshot.data
                 }
             }
+
+        // Listen for ratings
+        firestore.collection("kafici").document(cafeId)
+            .collection("ratings")
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    ratings = snap.documents.mapNotNull { it.data }
+                }
+            }
     }
-    //dobijanje informacija preko ida i stavljanje to u promenljive gde se cuva
+
     cafeData?.let { data ->
         val name = data["name"] as? String ?: "Nepoznato"
         val photoUrl = data["photo"] as? String
@@ -80,10 +98,10 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
 
                         val userRef = firestore.collection("users").document(currentUserId)
                         userRef.update("points", FieldValue.increment(1))
+
                         cafeRef.collection("reservations")
                             .document(currentUserId)
                             .set(mapOf("reserved" to true))
-
 
                         hasReserved = true
                     }
@@ -92,6 +110,79 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(if (hasReserved) "Rezervisano" else "Rezervisi")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Rating input if user has not rated yet
+            if (!hasRated) {
+                Text("Ostavite recenziju", color = Color.Black)
+                Spacer(Modifier.height(8.dp))
+
+                Slider(
+                    value = newRating,
+                    onValueChange = { newRating = it },
+                    valueRange = 1f..5f,
+                    steps = 3
+                )
+                Text("Ocena: ${newRating.toInt()}/5")
+
+                Spacer(Modifier.height(8.dp))
+
+                TextField(
+                    value = newComment,
+                    onValueChange = { newComment = it },
+                    label = { Text("Komentar") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Button(onClick = {
+                    // Get username to store with rating
+                    firestore.collection("users").document(currentUserId)
+                        .get().addOnSuccessListener { userDoc ->
+                            val username = userDoc.getString("username") ?: "Nepoznat"
+
+                            val ratingData = mapOf(
+                                "rating" to newRating.toInt(),
+                                "comment" to newComment,
+                                "userId" to currentUserId,
+                                "username" to username
+                            )
+
+                            firestore.collection("kafici").document(cafeId)
+                                .collection("ratings")
+                                .document(currentUserId)
+                                .set(ratingData)
+
+                            firestore.collection("users").document(currentUserId)
+                                .update("points", FieldValue.increment(2))
+
+                            hasRated = true
+                        }
+                }) {
+                    Text("Potvrdi")
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Show ratings list
+            if (ratings.isNotEmpty()) {
+                Text("Recenzije:", color = Color.Black)
+                Spacer(Modifier.height(8.dp))
+
+                ratings.forEach { rating ->
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        Text("${rating["username"]} ⭐ ${rating["rating"]}/5", color = Color.Black)
+                        Text("${rating["comment"]}", color = Color.DarkGray)
+                    }
+                }
             }
         }
     }
