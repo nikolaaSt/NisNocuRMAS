@@ -151,20 +151,26 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                                 "username" to username
                             )
 
-                            firestore.collection("kafici").document(cafeId)
-                                .collection("ratings")
+                            val cafeRef = firestore.collection("kafici").document(cafeId)
+
+                            // ✅ Add or update the user's rating
+                            cafeRef.collection("ratings")
                                 .document(currentUserId)
                                 .set(ratingData)
+                                .addOnSuccessListener {
+                                    // ✅ After adding rating, recalculate average rating
+                                    updateAverageRating(firestore, cafeId)
 
-                            firestore.collection("users").document(currentUserId)
-                                .update("points", FieldValue.increment(2))
+                                    // ✅ Add 2 points to user
+                                    firestore.collection("users").document(currentUserId)
+                                        .update("points", FieldValue.increment(2))
 
-                            hasRated = true
+                                    hasRated = true
+                                }
                         }
                 }) {
                     Text("Potvrdi")
-                }
-            }
+                }}
 
             Spacer(Modifier.height(16.dp))
 
@@ -187,3 +193,27 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
         }
     }
 }
+
+fun updateAverageRating(firestore: FirebaseFirestore, cafeId: String) {
+    val cafeRef = firestore.collection("kafici").document(cafeId)
+
+    cafeRef.collection("ratings").get()
+        .addOnSuccessListener { snapshot ->
+            val ratings = snapshot.documents.mapNotNull { it.getLong("rating")?.toInt() }
+
+            if (ratings.isNotEmpty()) {
+                val average = ratings.average()
+                val count = ratings.size
+
+                // ✅ Update Firestore cafe document
+                cafeRef.update(
+                    mapOf(
+                        "averageRating" to average,
+                        "ratingsCount" to count
+                    )
+                )
+            }
+        }
+}
+
+

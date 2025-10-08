@@ -116,7 +116,7 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
                         .fillMaxWidth()
                         .padding(8.dp)
                         .clickable {
-                            navController.navigate("Kafic/${cafe.id}")
+                            navController.navigate("Kafic/${cafe.id}/$currentUserId")
                         }
                 ) {
                     Column(Modifier.padding(16.dp)) {
