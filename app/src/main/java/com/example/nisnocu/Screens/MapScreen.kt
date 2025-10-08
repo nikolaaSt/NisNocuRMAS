@@ -36,6 +36,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.maps.android.compose.*
+import kotlinx.coroutines.launch
 import kotlin.math.*
 
 @SuppressLint("MissingPermission")
@@ -68,6 +69,9 @@ fun MapScreen(navController: NavHostController) {
     var minRating by remember { mutableStateOf(0f) }
     var selectedUser by remember { mutableStateOf<String?>(null) }
     var allUsers by remember { mutableStateOf(listOf<Pair<String, String>>()) }
+
+    var expandedDropdown by remember { mutableStateOf(false) }
+    var searchSuggestions by remember { mutableStateOf(listOf<Pair<String, Map<String, Any>>>()) }
 
     // Funkcija za racunanje distance izmedju dve tacke
     fun Daljina(start: LatLng, end: LatLng): Double {
@@ -276,25 +280,59 @@ fun MapScreen(navController: NavHostController) {
         }
 
         // Search bar i filter dugme
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search") },
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { showFilterDialog = true }) { Text("Filters") }
-            }
-        }
 
-        // -------- ALERTDIALOGS --------
+        val scope = rememberCoroutineScope()
+        Column {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { query ->
+                    searchQuery = query
+
+                    // Filter cafes for suggestions as user types
+                    searchSuggestions = if (query.isNotBlank()) {
+                        kaficiList.filter { (_, data) ->
+                            val name = data["name"] as? String ?: ""
+                            name.contains(query, ignoreCase = true)
+                        }
+                    } else emptyList()
+
+                    expandedDropdown = searchSuggestions.isNotEmpty()
+                },
+                label = { Text("Search") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            DropdownMenu(
+                expanded = expandedDropdown,
+                onDismissRequest = { expandedDropdown = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                searchSuggestions.forEach { (id, data) ->
+                    val cafeName = data["name"] as? String ?: "Nepoznato"
+                    DropdownMenuItem(
+                        text = { Text(cafeName) },
+                        onClick = {
+                            expandedDropdown = false
+                            searchQuery = cafeName
+
+                            // Move camera to selected cafe
+                            val locationMap = data["location"] as? Map<*, *>
+                            val lat = locationMap?.get("lat")?.let { (it as Number).toDouble() }
+                            val lng = locationMap?.get("lng")?.let { (it as Number).toDouble() }
+                            if (lat != null && lng != null) {
+                                scope.launch {
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f)
+                                )
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = { showFilterDialog = true }) { Text("Filters") }
+        }
 
         // Filter dialog
         if (showFilterDialog) {
