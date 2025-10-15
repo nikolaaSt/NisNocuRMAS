@@ -100,10 +100,10 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            Button(onClick = { selectedFilter = "rating" }) { Text("By Rating") }
-            Button(onClick = { selectedFilter = "user" }) { Text("By User") }
-            Button(onClick = { selectedFilter = "newest" }) { Text("Newest") }
-            Button(onClick = { selectedFilter = "radius" }) { Text("Nearest") }
+            Button(onClick = { selectedFilter = "rating" }) { Text("Rating") }
+            Button(onClick = { selectedFilter = "user" }) { Text("User") }
+            Button(onClick = { selectedFilter = "newest" }) { Text("New") }
+            Button(onClick = { selectedFilter = "radius" }) { Text("Near") }
         }
 
         Spacer(Modifier.height(16.dp))

@@ -23,9 +23,12 @@ class MainActivity : ComponentActivity() {
             val navController= rememberNavController()
             NavGraph(navController=navController)
 
+
         }
     }
 }
+
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {

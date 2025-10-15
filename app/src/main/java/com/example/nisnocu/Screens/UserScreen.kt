@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
@@ -63,10 +64,15 @@ fun UserScreen(navController: NavHostController, userId: String) {
 
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = { navController.navigate("Map") },
+                onClick = { FirebaseAuth.getInstance().signOut()
+                            navController.navigate("login"){
+                                popUpTo(0){inclusive=true}
+                                launchSingleTop=true
+                            }
+                          },
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Back to Map")
+                Text("Izlogujte se")
             }
         }
     }

@@ -17,12 +17,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import java.io.File
 import java.util.UUID
 
 
@@ -35,18 +37,107 @@ fun RegistrationScreen(navController: NavHostController) {
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraPhotoUri by remember{ mutableStateOf<Uri?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
 
     val auth = FirebaseAuth.getInstance()
     val firestore=FirebaseFirestore.getInstance()
     val storage=FirebaseStorage.getInstance()
     val context= LocalContext.current
+    var hasCameraPermission by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCameraPermission = granted
+        if (!granted) {
+            Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
 
-    // Launcher for picking from gallery
+    // Launch camera
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && cameraPhotoUri != null) {
+            photoUri = cameraPhotoUri
+        } else {
+            Toast.makeText(context, "Failed to capture photo", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Launch gallery
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> photoUri = uri }
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            photoUri = uri
+        } else {
+            Toast.makeText(context, "Failed to select photo", Toast.LENGTH_SHORT).show()
+        }
+    }
 
-    // Launcher for taking a photo
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(android.Manifest.permission.CAMERA)
+    }
+
+    // Create file URI for camera
+    fun createImageUri(context: Context): Uri? {
+        return try {
+            val imagesDir = File(context.cacheDir, "images")
+            if (!imagesDir.exists()) imagesDir.mkdirs()
+            val imageFile = File(imagesDir, "temp_photo_${System.currentTimeMillis()}.jpg")
+            if (!imageFile.createNewFile()) {
+                Toast.makeText(context, "Failed to create image file", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            FileProvider.getUriForFile(
+                context,
+                "com.example.nisnocu.provider",
+                imageFile
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Error creating image URI: ${e.message}", Toast.LENGTH_SHORT).show()
+            null
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Choose Photo") },
+            text = {
+                Column {
+                    TextButton(onClick = {
+                        showDialog = false
+                        galleryLauncher.launch("image/*")
+                    }) {
+                        Text("Gallery")
+                    }
+                    TextButton(onClick = {
+                        showDialog = false
+                        if (hasCameraPermission) {
+                            cameraPhotoUri = createImageUri(context)
+                            cameraPhotoUri?.let { uri ->
+                                cameraLauncher.launch(uri)
+                            } ?: Toast.makeText(context, "Failed to create image URI", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
+                            permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Text("Camera")
+                    }
+                }
+            },
+            confirmButton = { },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
 
     Box(
@@ -63,7 +154,10 @@ fun RegistrationScreen(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .clickable { galleryLauncher.launch("image/*") }, // Click to pick from gallery
+                    .clickable {
+                        showDialog=true
+
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (photoUri != null) {

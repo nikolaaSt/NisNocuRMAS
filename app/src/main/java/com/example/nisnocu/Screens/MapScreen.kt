@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -73,6 +75,10 @@ fun MapScreen(navController: NavHostController) {
     var expandedDropdown by remember { mutableStateOf(false) }
     var searchSuggestions by remember { mutableStateOf(listOf<Pair<String, Map<String, Any>>>()) }
 
+    val userPhotoUrl=remember{ mutableStateOf<String?>(null) }
+    val userName=remember{ mutableStateOf("") }
+    val userSurname=remember{ mutableStateOf("") }
+
     // Funkcija za racunanje distance izmedju dve tacke
     fun Daljina(start: LatLng, end: LatLng): Double {
         val radijusZemlje = 6371000.0
@@ -83,6 +89,16 @@ fun MapScreen(navController: NavHostController) {
                 sin(dLng / 2).pow(2.0)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return radijusZemlje * c
+    }
+
+
+    LaunchedEffect(trenutniUserId) {
+        FirebaseFirestore.getInstance().collection("users")
+            .document(trenutniUserId).get().addOnSuccessListener { doc ->
+                userName.value = doc.getString("name") ?: ""
+                userSurname.value = doc.getString("surname") ?: ""
+                userPhotoUrl.value = doc.getString("photo")
+            }
     }
 
     //naci objasnjenje za ovaj deo koda jer mi nista nije jasno
@@ -200,11 +216,10 @@ fun MapScreen(navController: NavHostController) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.85f),
+            modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = true)
+            properties = MapProperties(isMyLocationEnabled = true),
+
         ) {
             // Ako imamo lokaciju onda se stavlja marker i na njegov stisak dobijamo naslov Vasa lokacija
             userLocation?.let { location ->
@@ -253,20 +268,122 @@ fun MapScreen(navController: NavHostController) {
             }
         }
 
-        // Dugmad za navigaciju i akcije
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
+        Row (
+            modifier=Modifier
+                .align(Alignment.TopCenter)
+                .padding(top=20.dp)
+                .background(
+                    color=Color.White.copy(alpha=0.9f),
+                    shape= RoundedCornerShape(12.dp)
+                )
+                .padding(horizontal=12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            AsyncImage(
+                model = userPhotoUrl.value,
+                contentDescription = "User Photo",
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { navController.navigate("User/$trenutniUserId") }
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text("${userName.value}")
+                Text("${userSurname.value}")
+            }
+        }
+
+
+
+
+
+
+        // Search bar i filter dugme
+
+        val scope = rememberCoroutineScope()
+        Column (
+            modifier=Modifier
                 .align(Alignment.BottomCenter)
-                .padding(8.dp)
-        ) {
+                .padding(bottom=32.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ){
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { query ->
+                        searchQuery = query
+
+                        // Filter cafes for suggestions as user types
+                        searchSuggestions = if (query.isNotBlank()) {
+                            kaficiList.filter { (_, data) ->
+                                val name = data["name"] as? String ?: ""
+                                name.contains(query, ignoreCase = true)
+                            }
+                        } else emptyList()
+
+                        expandedDropdown = searchSuggestions.isNotEmpty()
+                    },
+                    label = { Text("Search") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
+                )
+
+                Button(onClick = { showFilterDialog = true }) { Text("Filters") }
+
+                DropdownMenu(
+                    expanded = expandedDropdown,
+                    onDismissRequest = { expandedDropdown = false },
+                    modifier = Modifier.width(250.dp)
+                ) {
+                    searchSuggestions.forEach { (id, data) ->
+                        val cafeName = data["name"] as? String ?: "Nepoznato"
+                        DropdownMenuItem(
+                            text = { Text(cafeName) },
+                            onClick = {
+                                expandedDropdown = false
+                                searchQuery = cafeName
+
+                                // Move camera to selected cafe
+                                val locationMap = data["location"] as? Map<*, *>
+                                val lat = locationMap?.get("lat")?.let { (it as Number).toDouble() }
+                                val lng = locationMap?.get("lng")?.let { (it as Number).toDouble() }
+                                if (lat != null && lng != null) {
+                                    scope.launch {
+                                        cameraPositionState.animate(
+                                            CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f)
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            // Dugmad za navigaciju i akcije
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .background(Color.White.copy(alpha=0.95f), RoundedCornerShape(bottomStart=16.dp, bottomEnd = 16.dp))
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Button(onClick = { addPlace = true }) { Text("+") }
                 Button(onClick = { radiusDialog = true }) { Text("R") }
-                Button(onClick = { navController.navigate("User/$trenutniUserId") }) { Text("Profile") }
                 Button(onClick = { navController.navigate("rangLista") }) { Text("Lista") }
                 Button(
                     onClick = {
@@ -277,61 +394,8 @@ fun MapScreen(navController: NavHostController) {
                     enabled = userLocation != null
                 ) { Text("Search") }
             }
-        }
 
-        // Search bar i filter dugme
 
-        val scope = rememberCoroutineScope()
-        Column {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { query ->
-                    searchQuery = query
-
-                    // Filter cafes for suggestions as user types
-                    searchSuggestions = if (query.isNotBlank()) {
-                        kaficiList.filter { (_, data) ->
-                            val name = data["name"] as? String ?: ""
-                            name.contains(query, ignoreCase = true)
-                        }
-                    } else emptyList()
-
-                    expandedDropdown = searchSuggestions.isNotEmpty()
-                },
-                label = { Text("Search") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            DropdownMenu(
-                expanded = expandedDropdown,
-                onDismissRequest = { expandedDropdown = false },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                searchSuggestions.forEach { (id, data) ->
-                    val cafeName = data["name"] as? String ?: "Nepoznato"
-                    DropdownMenuItem(
-                        text = { Text(cafeName) },
-                        onClick = {
-                            expandedDropdown = false
-                            searchQuery = cafeName
-
-                            // Move camera to selected cafe
-                            val locationMap = data["location"] as? Map<*, *>
-                            val lat = locationMap?.get("lat")?.let { (it as Number).toDouble() }
-                            val lng = locationMap?.get("lng")?.let { (it as Number).toDouble() }
-                            if (lat != null && lng != null) {
-                                scope.launch {
-                                cameraPositionState.animate(
-                                    CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f)
-                                )
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = { showFilterDialog = true }) { Text("Filters") }
         }
 
         // Filter dialog
@@ -382,9 +446,20 @@ fun MapScreen(navController: NavHostController) {
 
             AlertDialog(
                 onDismissRequest = { selectedKafic = null },
-                title = { Text(ime) },
+                title = {},
                 text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+
+                        Text(
+                            text = ime,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+
                         photoUrl?.let {
                             AsyncImage(
                                 model = it,
@@ -392,16 +467,21 @@ fun MapScreen(navController: NavHostController) {
                                 modifier = Modifier
                                     .height(150.dp)
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Dostupno
+                        Text("Dostupno: $tables")
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Rezervisi + Detalji
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Text("Dostupno:$tables") //dodati da se tables updateuju kad se pritisne na rezervisi
-                            Spacer(modifier = Modifier.height(8.dp))
                             Button(
                                 onClick = {
                                     val KaficRef = firestore.collection("kafici").document(id)
@@ -428,9 +508,17 @@ fun MapScreen(navController: NavHostController) {
                         }
                     }
                 },
-                confirmButton = { Button(onClick = { selectedKafic = null }) { Text("Zatvori") } },
+                confirmButton = {
+                    Button(
+                        onClick = { selectedKafic = null },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Zatvori")
+                    }
+                },
                 shape = RoundedCornerShape(16.dp)
             )
+
         }
 
         // Add place dialog
@@ -509,12 +597,12 @@ fun MapScreen(navController: NavHostController) {
                 title = { Text("Izaberi radijus (km)") },
                 text = {
                     Column {
-                        Text("${radiusKm} km")
+                        Text("${radiusKm.toInt()} km")
                         Slider(
                             value = radiusKm,
                             onValueChange = { radiusKm = it },
-                            valueRange = 0.1f..10f,
-                            steps = 99
+                            valueRange = 0f..5f,
+                            steps = 5
                         )
                     }
                 },
