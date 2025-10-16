@@ -219,6 +219,10 @@ fun MapScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = true),
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = false,
+                myLocationButtonEnabled = false
+            )
 
         ) {
             // Ako imamo lokaciju onda se stavlja marker i na njegov stisak dobijamo naslov Vasa lokacija
@@ -271,7 +275,7 @@ fun MapScreen(navController: NavHostController) {
         Row (
             modifier=Modifier
                 .align(Alignment.TopCenter)
-                .padding(top=20.dp)
+                .padding(top=40.dp)
                 .background(
                     color=Color.White.copy(alpha=0.9f),
                     shape= RoundedCornerShape(12.dp)
@@ -305,7 +309,7 @@ fun MapScreen(navController: NavHostController) {
         Column (
             modifier=Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom=32.dp)
+                .padding(bottom=50.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
