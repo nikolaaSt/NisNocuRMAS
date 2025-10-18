@@ -220,7 +220,7 @@ fun MapScreen(navController: NavHostController) {
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = true),
             uiSettings = MapUiSettings(
-                zoomControlsEnabled = false,
+
                 myLocationButtonEnabled = false
             )
 
