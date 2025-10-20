@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -54,7 +55,7 @@ fun RegistrationScreen(navController: NavHostController) {
         }
     }
 
-    // Launch camera
+
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -65,7 +66,7 @@ fun RegistrationScreen(navController: NavHostController) {
         }
     }
 
-    // Launch gallery
+
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -80,7 +81,7 @@ fun RegistrationScreen(navController: NavHostController) {
         permissionLauncher.launch(android.Manifest.permission.CAMERA)
     }
 
-    // Create file URI for camera
+
     fun createImageUri(context: Context): Uri? {
         return try {
             val imagesDir = File(context.cacheDir, "images")
@@ -150,7 +151,7 @@ fun RegistrationScreen(navController: NavHostController) {
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Image
+
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -174,7 +175,7 @@ fun RegistrationScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Username
+
             Text(text = "Username", fontSize = 16.sp)
             TextField(
                 value = username,
@@ -185,18 +186,19 @@ fun RegistrationScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Password
+
             Text(text = "Password", fontSize = 16.sp)
             TextField(
                 value = password,
                 onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
                 singleLine = true
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // First name
+
             Text(text = "First Name", fontSize = 16.sp)
             TextField(
                 value = firstName,
@@ -207,7 +209,7 @@ fun RegistrationScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Last name
+
             Text(text = "Last Name", fontSize = 16.sp)
             TextField(
                 value = lastName,
@@ -218,7 +220,7 @@ fun RegistrationScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Phone number
+
             Text(text = "Phone Number", fontSize = 16.sp)
             TextField(
                 value = phoneNumber,
@@ -229,7 +231,7 @@ fun RegistrationScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Register Button
+
             Button(
                 onClick = {
                     if(username.isNotEmpty()&&password.isNotEmpty()&&photoUri!=null){
@@ -288,7 +290,7 @@ fun RegistrationScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Back to Login
+
             Text(
                 text = "Already have an account? Login",
                 modifier = Modifier.clickable { navController.navigate("login") },

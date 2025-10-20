@@ -84,7 +84,8 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
             }
         }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(top=40.dp)
+        .padding(horizontal = 16.dp)) {
         // search bar
         OutlinedTextField(
             value = searchQuery,

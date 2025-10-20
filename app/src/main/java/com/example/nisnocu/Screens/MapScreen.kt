@@ -101,7 +101,7 @@ fun MapScreen(navController: NavHostController) {
             }
     }
 
-    //naci objasnjenje za ovaj deo koda jer mi nista nije jasno
+
     LaunchedEffect(Unit) {
         firestore.collection("kafici").addSnapshotListener { snapshot, _ ->
             if (snapshot != null) {
@@ -136,18 +136,8 @@ fun MapScreen(navController: NavHostController) {
         matchesSearch && matchesUser && matchesRating
     }
 
-    // Ovo je da bi se pokrenuo dijalog za permisiju
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted ->
-            if (granted) {
-                // ukoliko dobijemo permisiju uzimamo za user location koordinate
-                fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                    location?.let { userLocation = LatLng(it.latitude, it.longitude) }
-                }
-            }
-        }
-    )
+
+
 
     // Kreiranje notification channel-a
     LaunchedEffect(Unit) {
@@ -202,7 +192,19 @@ fun MapScreen(navController: NavHostController) {
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> placePhotoUri = uri }
 
-    // Znaci ovo je launcher za permisiju za koriscenje lokacije(ima i compatibility resenje za starije verzije
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted ->
+            if (granted) {
+                // ukoliko dobijemo permisiju uzimamo za user location koordinate
+                fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                    location?.let { userLocation = LatLng(it.latitude, it.longitude) }
+                }
+            }
+        }
+    )
+
+    // Znaci ovo je launcher za permisiju za koriscenje lokacije(ima i compatibility resenje za starije verzije)
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -221,7 +223,8 @@ fun MapScreen(navController: NavHostController) {
             properties = MapProperties(isMyLocationEnabled = true),
             uiSettings = MapUiSettings(
 
-                myLocationButtonEnabled = false
+                myLocationButtonEnabled = false,
+                zoomControlsEnabled = false
             )
 
         ) {
@@ -376,7 +379,7 @@ fun MapScreen(navController: NavHostController) {
                 }
             }
             Spacer(Modifier.width(10.dp))
-            // Dugmad za navigaciju i akcije
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -388,7 +391,7 @@ fun MapScreen(navController: NavHostController) {
             ) {
                 Button(onClick = { addPlace = true }) { Text("+") }
                 Button(onClick = { radiusDialog = true }) { Text("R") }
-                Button(onClick = { navController.navigate("rangLista") }) { Text("Lista") }
+                Button(onClick = { navController.navigate("rangLista") }) { Text("Ranking") }
                 Button(
                     onClick = {
                         userLocation?.let { loc ->
@@ -396,7 +399,7 @@ fun MapScreen(navController: NavHostController) {
                         }
                     },
                     enabled = userLocation != null
-                ) { Text("Search") }
+                ) { Text("Places") }
             }
 
 
@@ -406,10 +409,10 @@ fun MapScreen(navController: NavHostController) {
         if (showFilterDialog) {
             AlertDialog(
                 onDismissRequest = { showFilterDialog = false },
-                title = { Text("Filteri") },
+                title = { Text("Filters") },
                 text = {
                     Column {
-                        Text("Minimalna ocena: ${minRating.toInt()}")
+                        Text("Minimum rating: ${minRating.toInt()}")
                         Slider(
                             value = minRating,
                             onValueChange = { minRating = it },
@@ -417,7 +420,7 @@ fun MapScreen(navController: NavHostController) {
                             steps = 5
                         )
                         Spacer(Modifier.height(8.dp))
-                        Text("Filter po korisniku:")
+                        Text("Filter by user:")
                         LazyColumn(Modifier.heightIn(max = 200.dp)) {
                             items(allUsers) { (userId, username) ->
                                 Text(
@@ -435,8 +438,8 @@ fun MapScreen(navController: NavHostController) {
                         }
                     }
                 },
-                confirmButton = { Button(onClick = { showFilterDialog = false }) { Text("Primeni") } },
-                dismissButton = { Button(onClick = { showFilterDialog = false }) { Text("Otkaži") } },
+                confirmButton = { Button(onClick = { showFilterDialog = false }) { Text("Apply") } },
+                dismissButton = { Button(onClick = { showFilterDialog = false }) { Text("Cancel") } },
                 shape = RoundedCornerShape(16.dp)
             )
         }
@@ -477,12 +480,12 @@ fun MapScreen(navController: NavHostController) {
 
                         Spacer(Modifier.height(12.dp))
 
-                        // Dostupno
-                        Text("Dostupno: $tables")
+
+                        Text("Available: $tables")
 
                         Spacer(Modifier.height(12.dp))
 
-                        // Rezervisi + Detalji
+
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -504,10 +507,10 @@ fun MapScreen(navController: NavHostController) {
                                     }
                                 },
                                 enabled = !userRezervisao && tables > 0
-                            ) { Text("Rezervisi") }
+                            ) { Text("Reserve") }
 
                             Button(onClick = { navController.navigate("Kafic/$id/$trenutniUserId") }) {
-                                Text("Detalji")
+                                Text("Details")
                             }
                         }
                     }
@@ -517,7 +520,7 @@ fun MapScreen(navController: NavHostController) {
                         onClick = { selectedKafic = null },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Zatvori")
+                        Text("Close")
                     }
                 },
                 shape = RoundedCornerShape(16.dp)
@@ -525,22 +528,22 @@ fun MapScreen(navController: NavHostController) {
 
         }
 
-        // Add place dialog
+
         if (addPlace) {
             AlertDialog(
                 onDismissRequest = { addPlace = false },
-                title = { Text("Dodaj mesto") },
+                title = { Text("Add place") },
                 text = {
                     Column {
                         OutlinedTextField(
                             value = placeName,
                             onValueChange = { placeName = it },
-                            label = { Text("Naziv mesta") },
+                            label = { Text("Place name") },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = { photoLauncher.launch("image/*") }) {
-                            Text(if (placePhotoUri == null) "Dodaj fotografiju" else "Izabrana fotografija")
+                            Text(if (placePhotoUri == null) "Add photo" else "Chosen photo")
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -549,7 +552,7 @@ fun MapScreen(navController: NavHostController) {
                                 tablesAvailableInput = input
                                 tablesAvailable = input.toIntOrNull() ?: 10
                             },
-                            label = { Text("Broj stolova") },
+                            label = { Text("Table number") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -583,22 +586,22 @@ fun MapScreen(navController: NavHostController) {
                                             tablesAvailable = 10
                                             tablesAvailableInput = "10"
                                         }
-                                        .addOnFailureListener { e -> println("Firestore greska: $e") }
+                                        .addOnFailureListener { e -> println("Firestore error: $e") }
                                 }
                             }
                         }
-                    }) { Text("Dodaj") }
+                    }) { Text("Add") }
                 },
-                dismissButton = { Button(onClick = { addPlace = false }) { Text("Otkaži") } },
+                dismissButton = { Button(onClick = { addPlace = false }) { Text("Cancel") } },
                 shape = RoundedCornerShape(16.dp)
             )
         }
 
-        // Radius selection dialog
+
         if (radiusDialog) {
             AlertDialog(
                 onDismissRequest = { radiusDialog = false },
-                title = { Text("Izaberi radijus (km)") },
+                title = { Text("Choose radius (km)") },
                 text = {
                     Column {
                         Text("${radiusKm.toInt()} km")
@@ -610,8 +613,8 @@ fun MapScreen(navController: NavHostController) {
                         )
                     }
                 },
-                confirmButton = { Button(onClick = { radiusDialog = false }) { Text("Potvrdi") } },
-                dismissButton = { Button(onClick = { radiusDialog = false }) { Text("Otkaži") } },
+                confirmButton = { Button(onClick = { radiusDialog = false }) { Text("Apply") } },
+                dismissButton = { Button(onClick = { radiusDialog = false }) { Text("Cancel") } },
                 shape = RoundedCornerShape(16.dp)
             )
         }
@@ -622,7 +625,7 @@ fun MapScreen(navController: NavHostController) {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Dobijanje vaše lokacije...")
+                Text("Getting your location")
             }
         }
     }

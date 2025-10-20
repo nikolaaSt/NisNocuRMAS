@@ -85,15 +85,15 @@ fun LoginScreen(
                         val fakeEmail="$username@app.com"
                         auth.signInWithEmailAndPassword(fakeEmail,password)
                             .addOnSuccessListener {
-                                Toast.makeText(context,"Uspesna prijava!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context,"Login successful", Toast.LENGTH_SHORT).show()
                                 navController.navigate("Map")
                             }
                             .addOnFailureListener{e->
-                                Toast.makeText(context,"greska pri prijavljivanju:${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context,"Error:${e.message}", Toast.LENGTH_SHORT).show()
                             }
 
                     } else{
-                      Toast.makeText(context, "Popunite oba polja", Toast.LENGTH_SHORT).show()
+                      Toast.makeText(context, "Fill both fields", Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -102,7 +102,7 @@ fun LoginScreen(
             }
 
             Text(
-                text="Nemate nalog, ulogujte se ovde",
+                text="Don't have an account, register here!",
                 modifier = Modifier.clickable { navController.navigate("register") },
                 color = MaterialTheme.colorScheme.primary
             )

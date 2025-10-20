@@ -72,7 +72,7 @@ fun UserScreen(navController: NavHostController, userId: String) {
                           },
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Izlogujte se")
+                Text("Log out")
             }
         }
     }

@@ -109,14 +109,14 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                 enabled = !hasReserved && tables > 0,
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(if (hasReserved) "Rezervisano" else "Rezervisi")
+                Text(if (hasReserved) "Reserved" else "Reserve")
             }
 
             Spacer(Modifier.height(24.dp))
 
             // Rating input if user has not rated yet
             if (!hasRated) {
-                Text("Ostavite recenziju", color = Color.Black)
+                Text("Leave a rating", color = Color.Black)
                 Spacer(Modifier.height(8.dp))
 
                 Slider(
@@ -125,14 +125,14 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                     valueRange = 1f..5f,
                     steps = 3
                 )
-                Text("Ocena: ${newRating.toInt()}/5")
+                Text("Rating: ${newRating.toInt()}/5")
 
                 Spacer(Modifier.height(8.dp))
 
                 TextField(
                     value = newComment,
                     onValueChange = { newComment = it },
-                    label = { Text("Komentar") },
+                    label = { Text("Comment") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -169,14 +169,14 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                                 }
                         }
                 }) {
-                    Text("Potvrdi")
+                    Text("Confirm")
                 }}
 
             Spacer(Modifier.height(16.dp))
 
             // Show ratings list
             if (ratings.isNotEmpty()) {
-                Text("Recenzije:", color = Color.Black)
+                Text("Ratings:", color = Color.Black)
                 Spacer(Modifier.height(8.dp))
 
                 ratings.forEach { rating ->
@@ -205,7 +205,7 @@ fun updateAverageRating(firestore: FirebaseFirestore, cafeId: String) {
                 val average = ratings.average()
                 val count = ratings.size
 
-                // ✅ Update Firestore cafe document
+
                 cafeRef.update(
                     mapOf(
                         "averageRating" to average,
