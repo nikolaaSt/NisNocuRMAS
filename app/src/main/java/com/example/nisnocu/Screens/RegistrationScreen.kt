@@ -260,7 +260,7 @@ fun RegistrationScreen(navController: NavHostController) {
                                                 .document(userid)
                                                 .set(userData)
                                                 .addOnSuccessListener {
-                                                    Toast.makeText(context, "Registracija uspesna!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
                                                     navController.navigate("login")
                                                 }
                                                 .addOnFailureListener{ e->
@@ -280,7 +280,7 @@ fun RegistrationScreen(navController: NavHostController) {
                             }
 
                     } else {
-                        Toast.makeText(context,"Popunite sva polja za registraciju", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,"Fill all fields", Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

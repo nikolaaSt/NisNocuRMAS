@@ -54,7 +54,7 @@ fun MapScreen(navController: NavHostController) {
     var addPlace by remember { mutableStateOf(false) }
     var placePhotoUri by remember { mutableStateOf<Uri?>(null) }
     var placeName by remember { mutableStateOf("") }
-    var radiusKm by remember { mutableStateOf(1f) } //neka bude radijus po default 1km
+    var radiusKm by remember { mutableStateOf(0f) }
     var radiusDialog by remember { mutableStateOf(false) }
     var kaficiList by remember { mutableStateOf<List<Pair<String, Map<String, Any>>>>(emptyList()) } //pravi listu kafica koje cemo posle dobiti iz baze pozivanjem
     var selectedKafic by remember { mutableStateOf<Pair<String, Map<String, Any>>?>(null) }
@@ -184,7 +184,7 @@ fun MapScreen(navController: NavHostController) {
                     }
                 }
             }
-            kotlinx.coroutines.delay(10000L)
+            kotlinx.coroutines.delay(600000L)
         }
     }
 
@@ -350,7 +350,7 @@ fun MapScreen(navController: NavHostController) {
                 Button(onClick = { showFilterDialog = true }) { Text("Filters") }
 
                 DropdownMenu(
-                    expanded = expandedDropdown,
+                    expanded = expandedDropdown && searchSuggestions.isNotEmpty(),
                     onDismissRequest = { expandedDropdown = false },
                     modifier = Modifier.width(250.dp)
                 ) {
@@ -607,9 +607,9 @@ fun MapScreen(navController: NavHostController) {
                         Text("${radiusKm.toInt()} km")
                         Slider(
                             value = radiusKm,
-                            onValueChange = { radiusKm = it },
+                            onValueChange = {  radiusKm = (it * 1).toInt().toFloat()},
                             valueRange = 0f..5f,
-                            steps = 5
+
                         )
                     }
                 },
