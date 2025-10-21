@@ -172,7 +172,7 @@ fun MapScreen(navController: NavHostController) {
                         if (distanca <= radiusKm * 1000 && !notifiedCafes.value.contains(id)) {
                             val builder = NotificationCompat.Builder(context, "nearby_channel")
                                 .setSmallIcon(android.R.drawable.ic_dialog_info)
-                                .setContentTitle("$imeKafica je unutar izabranog radijusa")
+                                .setContentTitle("$imeKafica is inside the chosen radius")
                                 .setPriority(NotificationCompat.PRIORITY_HIGH)
 
                             val notificationManager =
@@ -184,7 +184,7 @@ fun MapScreen(navController: NavHostController) {
                     }
                 }
             }
-            kotlinx.coroutines.delay(600000L)
+            kotlinx.coroutines.delay( 10000L)
         }
     }
 
@@ -232,7 +232,7 @@ fun MapScreen(navController: NavHostController) {
             userLocation?.let { location ->
                 Marker(
                     state = MarkerState(position = location),
-                    title = "Vasa lokacija",
+                    title = "Your location",
                     icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
                 )
 
