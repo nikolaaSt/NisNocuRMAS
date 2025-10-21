@@ -223,7 +223,7 @@ fun MapScreen(navController: NavHostController) {
             properties = MapProperties(isMyLocationEnabled = true),
             uiSettings = MapUiSettings(
 
-                myLocationButtonEnabled = false,
+
                 zoomControlsEnabled = false
             )
 
