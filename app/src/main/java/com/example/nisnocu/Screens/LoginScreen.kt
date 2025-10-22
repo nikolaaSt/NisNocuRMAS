@@ -82,7 +82,7 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if(username.isNotEmpty()&&password.isNotEmpty()){
-                        val fakeEmail="$username@app.com"
+                        val fakeEmail="$username@app.com" //koristimo fake email jer firebase ima autentifikaciju preko email/password
                         auth.signInWithEmailAndPassword(fakeEmail,password)
                             .addOnSuccessListener {
                                 Toast.makeText(context,"Login successful", Toast.LENGTH_SHORT).show()

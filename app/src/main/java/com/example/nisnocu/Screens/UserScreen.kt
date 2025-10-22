@@ -21,7 +21,7 @@ fun UserScreen(navController: NavHostController, userId: String) {
 
     var userData by remember { mutableStateOf<Map<String, Any>?>(null) }
 
-    // Listen for changes in user document
+    // Slusamo za promene u bazi za users
     LaunchedEffect(userId) {
         firestore.collection("users").document(userId)
             .addSnapshotListener { snapshot, error ->
@@ -30,7 +30,7 @@ fun UserScreen(navController: NavHostController, userId: String) {
                 }
             }
     }
-
+//pokupljamo info iz baze i stavljamo u varijable koje posle koristimo da prikazemo u front
     userData?.let { data ->
         val name = data["name"] as? String ?: "Nepoznato"
         val surname = data["surname"] as? String ?: ""
@@ -65,7 +65,7 @@ fun UserScreen(navController: NavHostController, userId: String) {
 
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = { FirebaseAuth.getInstance().signOut()
+                onClick = { FirebaseAuth.getInstance().signOut()  //logout i popovanje nazad na login screen
                             navController.navigate("login"){
                                 popUpTo(0){inclusive=true}
                                 launchSingleTop=true

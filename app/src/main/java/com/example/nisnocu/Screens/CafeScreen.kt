@@ -27,23 +27,23 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
     var newRating by remember { mutableStateOf(5f) }
     var newComment by remember { mutableStateOf("") }
 
-    // Load cafe data, reservation, rating, and listen for ratings
+    // uzimamo info za kafice i za rezervacije
     LaunchedEffect(cafeId) {
-        // Check reservation
+        // proveravamo da li je rezervisano
         firestore.collection("kafici").document(cafeId)
             .collection("reservations").document(currentUserId)
             .get().addOnSuccessListener { doc ->
                 hasReserved = doc.exists()
             }
 
-        // Check if user already rated
+        // da li je user vec ostavio ocenu
         firestore.collection("kafici").document(cafeId)
             .collection("ratings").document(currentUserId)
             .get().addOnSuccessListener { doc ->
                 hasRated = doc.exists()
             }
 
-        // Listen for cafe data
+        // slusanje za promene u bazi ukoliko je dodat neki kafic i za njegov info
         firestore.collection("kafici").document(cafeId)
             .addSnapshotListener { snapshot, error ->
                 if (error == null && snapshot != null && snapshot.exists()) {
@@ -51,7 +51,7 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                 }
             }
 
-        // Listen for ratings
+        // promena u ratingu kafica
         firestore.collection("kafici").document(cafeId)
             .collection("ratings")
             .addSnapshotListener { snap, _ ->
@@ -95,10 +95,10 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                 onClick = {
                     if (!hasReserved && tables > 0) {
                         val cafeRef = firestore.collection("kafici").document(cafeId)
-                        cafeRef.update("tables", tables - 1)
+                        cafeRef.update("tables", tables - 1) //ako se rezervise onda se oduzima za jedan
 
                         val userRef = firestore.collection("users").document(currentUserId)
-                        userRef.update("points", FieldValue.increment(1))
+                        userRef.update("points", FieldValue.increment(1))  //ako rezervises dodaje se 1 poen za korisnika
 
                         cafeRef.collection("reservations")
                             .document(currentUserId)
@@ -107,7 +107,7 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                         hasReserved = true
                     }
                 },
-                enabled = !hasReserved && tables > 0,
+                enabled = !hasReserved && tables > 0, //samo ce button biti enabled UKOLIKO je broj stolova veci od 0, otherwise neema rezervisanja nikako
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(if (hasReserved) "Reserved" else "Reserve")
@@ -115,7 +115,7 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
 
             Spacer(Modifier.height(24.dp))
 
-            // Rating input if user has not rated yet
+            //ako user jos nije rezervisao izbacuje se ovakav deo screena da bi mogla d ase ostavi ocena i komentar
             if (!hasRated) {
                 Text("Leave a rating", color = Color.Black)
                 Spacer(Modifier.height(8.dp))
@@ -140,7 +140,7 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                 Spacer(Modifier.height(8.dp))
 
                 Button(onClick = {
-                    // Get username to store with rating
+                    // Stavljamo ovaj novi rating u bazu i pamtimo po useru
                     firestore.collection("users").document(currentUserId)
                         .get().addOnSuccessListener { userDoc ->
                             val username = userDoc.getString("username") ?: "Nepoznat"
@@ -154,15 +154,15 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
 
                             val cafeRef = firestore.collection("kafici").document(cafeId)
 
-                            // ✅ Add or update the user's rating
+                            // updateuje se rating
                             cafeRef.collection("ratings")
                                 .document(currentUserId)
                                 .set(ratingData)
                                 .addOnSuccessListener {
-                                    // ✅ After adding rating, recalculate average rating
+                                    // rekalkulacija prosecnog ratinga uzivo da bi se odmah prikazao gde god hoces
                                     updateAverageRating(firestore, cafeId)
 
-                                    // ✅ Add 2 points to user
+                                    // za svaki rating stavio sam da se broj poena inkrementuje za 2 jer sto da ne
                                     firestore.collection("users").document(currentUserId)
                                         .update("points", FieldValue.increment(2))
 
@@ -175,7 +175,7 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
 
             Spacer(Modifier.height(16.dp))
 
-            // Show ratings list
+            // ispisuje samo listu ratinga
             if (ratings.isNotEmpty()) {
                 Text("Ratings:", color = Color.Black)
                 Spacer(Modifier.height(8.dp))
@@ -186,7 +186,7 @@ fun CafeScreen(navController: NavHostController, cafeId: String, currentUserId: 
                             .fillMaxWidth()
                             .padding(8.dp)
                     ) {
-                        Text("${rating["username"]} ⭐ ${rating["rating"]}/5", color = Color.Black)
+                        Text("${rating["username"]} ⭐ ${rating["rating"]}/5", color = Color.Black) //zvezdica iskopirana sa neta ne znam kako radi
                         Text("${rating["comment"]}", color = Color.DarkGray)
                     }
                 }

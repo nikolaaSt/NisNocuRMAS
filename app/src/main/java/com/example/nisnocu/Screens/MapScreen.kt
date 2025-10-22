@@ -444,7 +444,7 @@ fun MapScreen(navController: NavHostController) {
             )
         }
 
-        // Selected kafic details
+        // Selected kafic detalji
         if (selectedKafic != null) {
             val (id, data) = selectedKafic!!
             val ime = data["name"] as? String ?: "Nepoznato"
@@ -579,7 +579,7 @@ fun MapScreen(navController: NavHostController) {
                                         "ratingsCount" to 0
                                     )
                                     firestore.collection("kafici").add(kaficiData)
-                                        .addOnSuccessListener {
+                                        .addOnSuccessListener { //ako prodje bez problema, dijalog se vraca na default stanje sa ovim default inputima
                                             addPlace = false
                                             placeName = ""
                                             placePhotoUri = null

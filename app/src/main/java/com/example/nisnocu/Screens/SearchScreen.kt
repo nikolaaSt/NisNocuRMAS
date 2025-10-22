@@ -36,7 +36,7 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("none") }
 
-    // fetch data
+    // uzimamo apsolutno svaki info iz baze za kafice da bismo ih prikazali
     LaunchedEffect(Unit) {
         firestore.collection("kafici")
             .addSnapshotListener { snapshot, error ->
@@ -59,7 +59,7 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
             }
     }
 
-    // apply filters + search
+    // kada se pritisnu filteri, filtrira ih na osnovu pritisnutog filtera
     val filteredCafes = cafes
         .filter { it.name.contains(searchQuery, ignoreCase = true) || searchQuery.isEmpty() }
         .let { list ->
@@ -80,13 +80,13 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
                         Float.MAX_VALUE
                     }
                 }
-                else -> list
+                else -> list//ako gledamo za nearest(najblize), moramo da gledamo po lokaciji u ovom slucaju koristimo funkciju distanceBetween
             }
         }
 
     Column(Modifier.fillMaxSize().padding(top=40.dp)
         .padding(horizontal = 16.dp)) {
-        // search bar
+
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -96,7 +96,7 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
 
         Spacer(Modifier.height(8.dp))
 
-        // filter buttons
+
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
@@ -109,7 +109,7 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
 
         Spacer(Modifier.height(16.dp))
 
-        // results
+        // ovde stavljsmo rezultate koje dobijamo na osnovu filtera ili searcha
         LazyColumn {
             items(filteredCafes) { cafe ->
                 Card(

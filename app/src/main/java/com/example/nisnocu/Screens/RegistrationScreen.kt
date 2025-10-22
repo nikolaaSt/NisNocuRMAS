@@ -51,7 +51,7 @@ fun RegistrationScreen(navController: NavHostController) {
     ) { granted ->
         hasCameraPermission = granted
         if (!granted) {
-            Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show() //permisija za kameru
         }
     }
 
@@ -68,7 +68,7 @@ fun RegistrationScreen(navController: NavHostController) {
 
 
     val galleryLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
+        ActivityResultContracts.GetContent() //uzimamo iz gallery launcher content i stavljamo u photouri
     ) { uri: Uri? ->
         if (uri != null) {
             photoUri = uri
@@ -85,7 +85,7 @@ fun RegistrationScreen(navController: NavHostController) {
     fun createImageUri(context: Context): Uri? {
         return try {
             val imagesDir = File(context.cacheDir, "images")
-            if (!imagesDir.exists()) imagesDir.mkdirs()
+            if (!imagesDir.exists()) imagesDir.mkdirs() //pravimo direktorijum za slike ukoliko folder ne postoji
             val imageFile = File(imagesDir, "temp_photo_${System.currentTimeMillis()}.jpg")
             if (!imageFile.createNewFile()) {
                 Toast.makeText(context, "Failed to create image file", Toast.LENGTH_SHORT).show()
@@ -235,7 +235,7 @@ fun RegistrationScreen(navController: NavHostController) {
             Button(
                 onClick = {
                     if(username.isNotEmpty()&&password.isNotEmpty()&&photoUri!=null){
-                        val fakeEmail="$username@app.com"
+                        val fakeEmail="$username@app.com"  //pravi se fake email koristeci username po specifikacijama projekta :)
                         auth.createUserWithEmailAndPassword(fakeEmail,password)
                             .addOnSuccessListener { result->
                                 val userid=result.user?.uid?:return@addOnSuccessListener
@@ -247,7 +247,7 @@ fun RegistrationScreen(navController: NavHostController) {
                                 storageRef.putFile(photoUri!!)
                                     .addOnSuccessListener {
                                         storageRef.downloadUrl.addOnSuccessListener { downloadUrl->
-                                            val userData= hashMapOf(
+                                            val userData= hashMapOf( //hashmap bukv stavlja info po parovima
                                                 "username" to username,
                                                 "name" to firstName,
                                                 "surname" to lastName,
