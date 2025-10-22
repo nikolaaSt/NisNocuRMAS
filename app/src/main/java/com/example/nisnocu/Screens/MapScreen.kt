@@ -331,7 +331,7 @@ fun MapScreen(navController: NavHostController) {
                     onValueChange = { query ->
                         searchQuery = query
 
-                        // Filter cafes for suggestions as user types
+                        // izbacuje sugestije na osnovu slova koje user unosi
                         searchSuggestions = if (query.isNotBlank()) {
                             kaficiList.filter { (_, data) ->
                                 val name = data["name"] as? String ?: ""
@@ -339,7 +339,7 @@ fun MapScreen(navController: NavHostController) {
                             }
                         } else emptyList()
 
-                        expandedDropdown = searchSuggestions.isNotEmpty()
+                        expandedDropdown = searchSuggestions.isNotEmpty() //ukoliko se poklapaju slova izbacuje se dropdwon menu
                     },
                     label = { Text("Search") },
                     modifier = Modifier
@@ -362,7 +362,7 @@ fun MapScreen(navController: NavHostController) {
                                 expandedDropdown = false
                                 searchQuery = cafeName
 
-                                // Move camera to selected cafe
+                                // pomera se kamera na odredjenu lokaciju kada pritisnemo predlog za odredjeni kafic
                                 val locationMap = data["location"] as? Map<*, *>
                                 val lat = locationMap?.get("lat")?.let { (it as Number).toDouble() }
                                 val lng = locationMap?.get("lng")?.let { (it as Number).toDouble() }
