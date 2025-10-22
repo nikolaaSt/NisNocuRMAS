@@ -102,7 +102,7 @@ fun SearchScreen(navController: NavHostController, currentUserId: String, userLa
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Button(onClick = { selectedFilter = "rating" }) { Text("Rating") }
-            Button(onClick = { selectedFilter = "user" }) { Text("User") }
+            //Button(onClick = { selectedFilter = "user" }) { Text("User") }
             Button(onClick = { selectedFilter = "newest" }) { Text("New") }
             Button(onClick = { selectedFilter = "radius" }) { Text("Near") }
         }
